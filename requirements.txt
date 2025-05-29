@@ -1,0 +1,159 @@
+# requirements.txt
+flask==2.3.3
+pandas==2.0.3
+numpy==1.24.3
+scikit-learn==1.3.0
+joblib==1.3.2
+requests==2.31.0
+
+# Project Setup Instructions
+
+## 1. Installation Steps
+
+```bash
+# Create a new directory for your project
+mkdir stress-predictor
+cd stress-predictor
+
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+## 2. Get Gemini API Key
+
+1. Go to Google AI Studio: https://makersuite.google.com/app/apikey
+2. Create a new API key
+3. Copy the API key
+4. Replace "YOUR_GEMINI_API_KEY_HERE" in app.py with your actual API key
+
+## 3. Project Structure
+
+```
+stress-predictor/
+├── app.py                 # Main Flask application
+├── requirements.txt       # Python dependencies
+├── templates/
+│   └── index.html        # HTML template (create this folder)
+├── stress_model.pkl      # Trained model (auto-generated)
+├── encoders.pkl          # Label encoders (auto-generated)
+└── README.md            # Project documentation
+```
+
+## 4. Create Templates Folder
+
+```bash
+mkdir templates
+```
+
+## 5. Save HTML Template
+
+Save the HTML code as `templates/index.html` (copy from the first artifact)
+
+## 6. Running the Application
+
+```bash
+python app.py
+```
+
+The app will be available at: http://localhost:5000
+
+## 7. Testing the Model
+
+1. The app automatically creates sample training data
+2. Visit the homepage to use the prediction form
+3. Fill out the form and click "Predict My Stress Vulnerability"
+4. The ML model will make a prediction and Gemini will provide advice
+
+## 8. Using Your Own Dataset
+
+To use your actual CSV data instead of sample data:
+
+```python
+# In app.py, replace the create_sample_data() function call with:
+df = pd.read_csv('your_dataset.csv')
+result = predictor.train_model(df)
+```
+
+## 9. Deployment Options
+
+### Local Development
+- Use `python app.py` for local testing
+
+### Production Deployment
+- **Heroku**: Add Procfile with `web: python app.py`
+- **Railway**: Direct deployment from GitHub
+- **PythonAnywhere**: Upload files and configure WSGI
+- **DigitalOcean App Platform**: Deploy from GitHub
+
+## 10. Model Performance
+
+The Random Forest model will show:
+- R² Score (coefficient of determination)
+- Mean Squared Error
+- Feature importance rankings
+
+## 11. API Endpoints
+
+- `GET /`: Main application page
+- `POST /predict`: Make stress prediction
+- `POST /train`: Retrain the model
+
+## 12. Troubleshooting
+
+### Common Issues:
+1. **Import Error**: Make sure all packages are installed
+2. **Gemini API Error**: Check your API key and internet connection
+3. **Model Training Error**: Ensure your CSV has the required columns
+4. **Port Already in Use**: Change port in app.py: `app.run(port=5001)`
+
+### Error Handling:
+- The app includes fallback responses if Gemini API fails
+- Sample data is used if no dataset is available
+- Model training errors are caught and reported
+
+## 13. Customization Options
+
+### Add New Features:
+1. Update the HTML form with new input fields
+2. Modify the `prepare_data()` function to include new features
+3. Retrain the model
+
+### Change ML Algorithm:
+Replace RandomForestRegressor with:
+- GradientBoostingRegressor
+- XGBRegressor
+- Neural Networks (MLPRegressor)
+
+### Improve UI:
+- Add charts with Chart.js or Plotly
+- Create multiple pages
+- Add user authentication
+
+## 14. Security Notes
+
+- Keep your Gemini API key secure
+- Don't commit API keys to version control
+- Use environment variables in production:
+
+```python
+import os
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+```
+
+## 15. Next Steps
+
+1. Collect more training data for better accuracy
+2. Add cross-validation for model evaluation
+3. Implement user feedback to improve predictions
+4. Add data visualization dashboards
+5. Create mobile-responsive design
+6. Add user accounts and history tracking

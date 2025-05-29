@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stroke Risk Prediction</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            padding: 40px;
+        }
+
+        .form-section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        .form-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            font-weight: 500;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .predict-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .predict-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .predict-btn:active {
+            transform: translateY(0);
+        }
+
+        .results-section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+
+        .results-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            font-weight: 500;
+        }
+
+        .risk-indicator {
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+            font-size: 1.2em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .risk-low {
+            background: linear-gradient(135deg, #00b894, #00cec9);
+            color: white;
+        }
+
+        .risk-high {
+            background: linear-gradient(135deg, #e17055, #d63031);
+            color: white;
+        }
+
+        .probability-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .prob-card {
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .prob-low {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+        }
+
+        .prob-high {
+            background: linear-gradient(135deg, #fd79a8, #e84393);
+            color: white;
+        }
+
+        .prob-card h3 {
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .prob-card .value {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .disclaimer {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 0.9em;
+            color: #666;
+            border-left: 4px solid #667eea;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .probability-display {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🩺 Stroke Risk Prediction</h1>
+            <p>Advanced AI-powered healthcare assessment tool</p>
+        </div>
+
+        <div class="main-content">
+            <div class="form-section">
+                <h2>Patient Information</h2>
+                <form id="predictionForm">
+                    <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender" name="gender" required>
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="age">Age</label>
+                        <input type="number" id="age" name="age" min="1" max="120" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="hypertension">Hypertension</label>
+                        <select id="hypertension" name="hypertension" required>
+                            <option value="">Select</option>
+                            <option value="0">No</option>
+                            <option value="1">Yes</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="heart_disease">Heart Disease</label>
+                        <select id="heart_disease" name="heart_disease" required>
+                            <option value="">Select</option>
+                            <option value="0">No</option>
+                            <option value="1">Yes</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ever_married">Ever Married</label>
+                        <select id="ever_married" name="ever_married" required>
+                            <option value="">Select</option>
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="work_type">Work Type</label>
+                        <select id="work_type" name="work_type" required>
+                            <option value="">Select Work Type</option>
+                            <option value="Private">Private</option>
+                            <option value="Self-employed">Self-employed</option>
+                            <option value="Govt_job">Government Job</option>
+                            <option value="children">Children</option>
+                            <option value="Never_worked">Never Worked</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="residence_type">Residence Type</label>
+                        <select id="residence_type" name="residence_type" required>
+                            <option value="">Select Residence Type</option>
+                            <option value="Urban">Urban</option>
+                            <option value="Rural">Rural</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="avg_glucose_level">Average Glucose Level (mg/dL)</label>
+                        <input type="number" id="avg_glucose_level" name="avg_glucose_level" min="50" max="300"
+                            step="0.1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bmi">BMI (Body Mass Index)</label>
+                        <input type="number" id="bmi" name="bmi" min="10" max="50" step="0.1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="smoking_status">Smoking Status</label>
+                        <select id="smoking_status" name="smoking_status" required>
+                            <option value="">Select Smoking Status</option>
+                            <option value="never smoked">Never Smoked</option>
+                            <option value="formerly smoked">Formerly Smoked</option>
+                            <option value="smokes">Currently Smokes</option>
+                            <option value="Unknown">Unknown</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="predict-btn">Predict Stroke Risk</button>
+                </form>
+            </div>
+
+            <div class="results-section">
+                <h2>Prediction Results</h2>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing patient data...</p>
+                </div>
+
+                <div id="results" style="display: none;">
+                    <div id="riskIndicator" class="risk-indicator">
+                        <!-- Risk level will be displayed here -->
+                    </div>
+
+                    <div class="probability-display">
+                        <div class="prob-card prob-low">
+                            <h3>No Stroke Probability</h3>
+                            <div class="value" id="probNoStroke">--</div>
+                        </div>
+                        <div class="prob-card prob-high">
+                            <h3>Stroke Probability</h3>
+                            <div class="value" id="probStroke">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="disclaimer">
+                    <strong>⚠️ Medical Disclaimer:</strong> This tool is for educational purposes only and should not
+                    replace professional medical advice. Always consult with healthcare professionals for medical
+                    decisions.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock ML model - In production, this would connect to your Python backend
+        class StrokePredictionModel {
+            constructor() {
+                // Simplified model weights for demonstration
+                this.weights = {
+                    age: 0.05,
+                    hypertension: 0.3,
+                    heart_disease: 0.4,
+                    avg_glucose_level: 0.002,
+                    bmi: 0.01,
+                    gender_male: 0.1,
+                    ever_married_yes: 0.15,
+                    work_type_private: 0.05,
+                    residence_urban: 0.02,
+                    smoking_current: 0.2,
+                    smoking_former: 0.1
+                };
+                this.bias = -2.5;
+            }
+
+            encode_categorical(data) {
+                // Simple encoding logic
+                const encoded = { ...data };
+
+                // Gender encoding
+                encoded.gender_male = data.gender === 'Male' ? 1 : 0;
+
+                // Marriage encoding
+                encoded.ever_married_yes = data.ever_married === 'Yes' ? 1 : 0;
+
+                // Work type encoding
+                encoded.work_type_private = data.work_type === 'Private' ? 1 : 0;
+
+                // Residence encoding
+                encoded.residence_urban = data.residence_type === 'Urban' ? 1 : 0;
+
+                // Smoking encoding
+                encoded.smoking_current = data.smoking_status === 'smokes' ? 1 : 0;
+                encoded.smoking_former = data.smoking_status === 'formerly smoked' ? 1 : 0;
+
+                return encoded;
+            }
+
+            predict(patientData) {
+                const encoded = this.encode_categorical(patientData);
+
+                // Calculate weighted sum
+                let score = this.bias;
+                score += encoded.age * this.weights.age;
+                score += parseInt(encoded.hypertension) * this.weights.hypertension;
+                score += parseInt(encoded.heart_disease) * this.weights.heart_disease;
+                score += parseFloat(encoded.avg_glucose_level) * this.weights.avg_glucose_level;
+                score += parseFloat(encoded.bmi) * this.weights.bmi;
+                score += encoded.gender_male * this.weights.gender_male;
+                score += encoded.ever_married_yes * this.weights.ever_married_yes;
+                score += encoded.work_type_private * this.weights.work_type_private;
+                score += encoded.residence_urban * this.weights.residence_urban;
+                score += encoded.smoking_current * this.weights.smoking_current;
+                score += encoded.smoking_former * this.weights.smoking_former;
+
+                // Apply sigmoid function to get probability
+                const probability_stroke = 1 / (1 + Math.exp(-score));
+                const probability_no_stroke = 1 - probability_stroke;
+
+                // Make prediction
+                const prediction = probability_stroke > 0.5 ? 1 : 0;
+
+                return {
+                    prediction: prediction,
+                    probability_no_stroke: probability_no_stroke,
+                    probability_stroke: probability_stroke
+                };
+            }
+        }
+
+        // Initialize the model
+        const model = new StrokePredictionModel();
+
+        // Handle form submission
+        document.getElementById('predictionForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+
+            // Collect form data
+            const formData = new FormData(this);
+            const patientData = {};
+
+            for (let [key, value] of formData.entries()) {
+                patientData[key] = value;
+            }
+
+            // Simulate API delay
+            setTimeout(() => {
+                // Make prediction
+                const result = model.predict(patientData);
+
+                // Display results
+                displayResults(result);
+
+                // Hide loading and show results
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('results').style.display = 'block';
+            }, 2000);
+        });
+
+        function displayResults(result) {
+            const riskIndicator = document.getElementById('riskIndicator');
+            const probNoStroke = document.getElementById('probNoStroke');
+            const probStroke = document.getElementById('probStroke');
+
+            // Display risk level
+            if (result.prediction === 1) {
+                riskIndicator.className = 'risk-indicator risk-high';
+                riskIndicator.innerHTML = '⚠️ HIGH RISK<br><small>Elevated stroke risk detected</small>';
+            } else {
+                riskIndicator.className = 'risk-indicator risk-low';
+                riskIndicator.innerHTML = '✅ LOW RISK<br><small>Low stroke risk detected</small>';
+            }
+
+            // Display probabilities
+            probNoStroke.textContent = (result.probability_no_stroke * 100).toFixed(1) + '%';
+            probStroke.textContent = (result.probability_stroke * 100).toFixed(1) + '%';
+        }
+
+        // Add some sample data for testing
+        function loadSampleData() {
+            document.getElementById('gender').value = 'Male';
+            document.getElementById('age').value = '67';
+            document.getElementById('hypertension').value = '0';
+            document.getElementById('heart_disease').value = '1';
+            document.getElementById('ever_married').value = 'Yes';
+            document.getElementById('work_type').value = 'Private';
+            document.getElementById('residence_type').value = 'Urban';
+            document.getElementById('avg_glucose_level').value = '228.69';
+            document.getElementById('bmi').value = '36.6';
+            document.getElementById('smoking_status').value = 'formerly smoked';
+        }
+
+        // Add a button to load sample data (for testing)
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('predictionForm');
+            const sampleBtn = document.createElement('button');
+            sampleBtn.type = 'button';
+            sampleBtn.textContent = 'Load Sample Data';
+            sampleBtn.style.cssText = `
+                width: 100%;
+                background: linear-gradient(135deg, #74b9ff, #0984e3);
+                color: white;
+                border: none;
+                padding: 10px;
+                border-radius: 10px;
+                font-size: 14px;
+                cursor: pointer;
+                margin-bottom: 10px;
+            `;
+            sampleBtn.onclick = loadSampleData;
+            form.insertBefore(sampleBtn, form.firstChild);
+        });
+    </script>
+</body>
+
+</html>
