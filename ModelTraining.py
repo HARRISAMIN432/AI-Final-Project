@@ -35,7 +35,6 @@ class StrokePredictionTrainer:
         """Load and preprocess the stroke dataset"""
         print("Loading and preprocessing data...")
         
-        # Load the dataset
         self.df = pd.read_csv(self.csv_file_path)
         print(f"Dataset shape: {self.df.shape}")
         print(f"Dataset info:")
@@ -43,17 +42,13 @@ class StrokePredictionTrainer:
         print(f"\nMissing values:")
         print(self.df.isnull().sum())
         
-        # Handle missing values in BMI
         if 'bmi' in self.df.columns:
-            # Replace 'N/A' with NaN and then impute
             self.df['bmi'] = self.df['bmi'].replace('N/A', np.nan)
             self.df['bmi'] = pd.to_numeric(self.df['bmi'], errors='coerce')
             
-            # Impute missing BMI values with median
             bmi_imputer = SimpleImputer(strategy='median')
             self.df['bmi'] = bmi_imputer.fit_transform(self.df[['bmi']]).flatten()
         
-        # Encode categorical variables
         categorical_cols = ['gender', 'ever_married', 'work_type', 'Residence_type', 'smoking_status']
         
         for col in categorical_cols:
@@ -62,7 +57,6 @@ class StrokePredictionTrainer:
                 self.df[col] = le.fit_transform(self.df[col].astype(str))
                 self.label_encoders[col] = le
         
-        # Separate features and target
         if 'stroke' in self.df.columns:
             self.X = self.df.drop(['stroke', 'id'], axis=1, errors='ignore')
             self.y = self.df['stroke']
@@ -79,12 +73,10 @@ class StrokePredictionTrainer:
         """Split data into train/test and scale features"""
         print("Splitting and scaling data...")
         
-        # Split the data
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
             self.X, self.y, test_size=test_size, random_state=random_state, stratify=self.y
         )
         
-        # Scale the features
         self.X_train_scaled = self.scaler.fit_transform(self.X_train)
         self.X_test_scaled = self.scaler.transform(self.X_test)
         
@@ -119,23 +111,18 @@ class StrokePredictionTrainer:
         for name, model in self.models.items():
             print(f"\nTraining {name}...")
             
-            # Train the model
             if name in ['Random Forest', 'Decision Tree', 'Gradient Boosting', 'AdaBoost']:
-                # Tree-based models can handle unscaled data
                 model.fit(self.X_train, self.y_train)
                 y_pred = model.predict(self.X_test)
                 y_pred_proba = model.predict_proba(self.X_test)[:, 1]
             else:
-                # Other models need scaled data
                 model.fit(self.X_train_scaled, self.y_train)
                 y_pred = model.predict(self.X_test_scaled)
                 y_pred_proba = model.predict_proba(self.X_test_scaled)[:, 1]
             
-            # Calculate metrics
             accuracy = accuracy_score(self.y_test, y_pred)
             auc_score = roc_auc_score(self.y_test, y_pred_proba)
             
-            # Cross-validation score
             if name in ['Random Forest', 'Decision Tree', 'Gradient Boosting', 'AdaBoost']:
                 cv_scores = cross_val_score(model, self.X_train, self.y_train, cv=5)
             else:
@@ -153,7 +140,6 @@ class StrokePredictionTrainer:
             
             print(f"{name} - Accuracy: {accuracy:.4f}, AUC: {auc_score:.4f}, CV Mean: {cv_scores.mean():.4f}")
             
-            # Update best model
             if accuracy > self.best_accuracy:
                 self.best_accuracy = accuracy
                 self.best_model = model
@@ -195,7 +181,6 @@ class StrokePredictionTrainer:
             base_model = self.models[model_name]
             param_grid = param_grids[model_name]
             
-            # Use appropriate data for the model
             if model_name in ['Random Forest', 'Decision Tree', 'Gradient Boosting', 'AdaBoost']:
                 X_train_data = self.X_train
             else:
@@ -206,7 +191,6 @@ class StrokePredictionTrainer:
             )
             grid_search.fit(X_train_data, self.y_train)
             
-            # Update the best model
             self.best_model = grid_search.best_estimator_
             print(f"Best parameters for {model_name}: {grid_search.best_params_}")
             print(f"Best cross-validation score: {grid_search.best_score_:.4f}")
@@ -222,7 +206,6 @@ class StrokePredictionTrainer:
         print("DETAILED MODEL EVALUATION RESULTS")
         print("="*80)
         
-        # Sort models by accuracy
         sorted_results = sorted(self.results.items(), key=lambda x: x[1]['accuracy'], reverse=True)
         
         for i, (name, result) in enumerate(sorted_results, 1):
@@ -245,19 +228,15 @@ class StrokePredictionTrainer:
         """Save the best model, scaler, and encoders"""
         print(f"\nSaving best model ({self.best_model_name}) and preprocessing objects...")
         
-        # Save the model
         joblib.dump(self.best_model, model_path)
         print(f"Model saved to: {model_path}")
         
-        # Save the scaler
         joblib.dump(self.scaler, scaler_path)
         print(f"Scaler saved to: {scaler_path}")
         
-        # Save label encoders
         joblib.dump(self.label_encoders, encoders_path)
         print(f"Label encoders saved to: {encoders_path}")
         
-        # Also save using pickle as alternative
         pickle_path = model_path.replace('.joblib', '.pkl')
         with open(pickle_path, 'wb') as f:
             pickle.dump(self.best_model, f)
@@ -270,15 +249,12 @@ class StrokePredictionTrainer:
         """Load saved model and preprocessing objects for making predictions"""
         print("Loading saved model and preprocessing objects...")
         
-        # Load model
         loaded_model = joblib.load(model_path)
         print(f"Model loaded from: {model_path}")
         
-        # Load scaler
         loaded_scaler = joblib.load(scaler_path)
         print(f"Scaler loaded from: {scaler_path}")
         
-        # Load encoders
         loaded_encoders = joblib.load(encoders_path)
         print(f"Encoders loaded from: {encoders_path}")
         

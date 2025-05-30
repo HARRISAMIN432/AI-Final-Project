@@ -56,7 +56,6 @@ def get_gemini_analysis(patient_data, prediction_result, GEMINI_API_KEY, GEMINI_
             }]
         }
         
-        # Make API request to Gemini
         response = requests.post(
             f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
             headers=headers,
@@ -67,7 +66,6 @@ def get_gemini_analysis(patient_data, prediction_result, GEMINI_API_KEY, GEMINI_
         if response.status_code == 200:
             result = response.json()
             
-            # Extract the generated text from Gemini response
             if 'candidates' in result and len(result['candidates']) > 0:
                 analysis_text = result['candidates'][0]['content']['parts'][0]['text']
                 return {
