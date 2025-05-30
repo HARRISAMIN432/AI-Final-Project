@@ -6,9 +6,8 @@ import os
 import logging
 from datetime import datetime
 import traceback
-import requests
 from dotenv import load_dotenv
-import json
+from gemini import get_gemini_analysis
 
 try:
     from ModelTraining import StrokePredictionTrainer
@@ -25,8 +24,6 @@ load_dotenv()
 
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')  
 GEMINI_API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
-
-print(GEMINI_API_KEY)
 
 class StrokePredictor:
     def __init__(self):
@@ -180,104 +177,6 @@ class StrokePredictor:
             logger.error(f"Traceback: {traceback.format_exc()}")
             raise
 
-def get_gemini_analysis(patient_data, prediction_result):
-    """Send prediction results to Gemini for analysis and recommendations"""
-    if not GEMINI_API_KEY:
-        return {
-            'success': False,
-            'error': 'Gemini API key not configured',
-            'analysis': 'Gemini analysis unavailable - API key not set'
-        }
-    
-    try:
-        # Prepare the prompt for Gemini
-        prompt = f"""
-        As a medical AI assistant, please analyze the following stroke risk prediction results and provide professional medical insights:
-
-        Patient Information:
-        - Age: {patient_data.get('age', 'N/A')}
-        - Gender: {patient_data.get('gender', 'N/A')}
-        - Hypertension: {'Yes' if patient_data.get('hypertension') == '1' else 'No'}
-        - Heart Disease: {'Yes' if patient_data.get('heart_disease') == '1' else 'No'}
-        - Ever Married: {patient_data.get('ever_married', 'N/A')}
-        - Work Type: {patient_data.get('work_type', 'N/A')}
-        - Residence Type: {patient_data.get('residence_type', 'N/A')}
-        - Average Glucose Level: {patient_data.get('avg_glucose_level', 'N/A')} mg/dL
-        - BMI: {patient_data.get('bmi', 'N/A')}
-        - Smoking Status: {patient_data.get('smoking_status', 'N/A')}
-
-        Prediction Results:
-        - Risk Level: {prediction_result['risk_level']}
-        - Stroke Probability: {prediction_result['probability_stroke']:.1%}
-        - No Stroke Probability: {prediction_result['probability_no_stroke']:.1%}
-
-        Please provide:
-        1. A brief analysis of the key risk factors
-        2. Personalized health recommendations
-        3. Lifestyle modifications that could help reduce stroke risk
-        4. When to seek medical attention
-
-        Keep the response concise, professional, and include appropriate medical disclaimers.
-        """
-
-        headers = {
-            'Content-Type': 'application/json',
-        }
-        
-        payload = {
-            "contents": [{
-                "parts": [{
-                    "text": prompt
-                }]
-            }]
-        }
-        
-        # Make API request to Gemini
-        response = requests.post(
-            f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
-            headers=headers,
-            data=json.dumps(payload),
-            timeout=30
-        )
-        
-        if response.status_code == 200:
-            result = response.json()
-            
-            # Extract the generated text from Gemini response
-            if 'candidates' in result and len(result['candidates']) > 0:
-                analysis_text = result['candidates'][0]['content']['parts'][0]['text']
-                return {
-                    'success': True,
-                    'analysis': analysis_text
-                }
-            else:
-                return {
-                    'success': False,
-                    'error': 'No analysis generated',
-                    'analysis': 'Unable to generate analysis at this time.'
-                }
-        else:
-            logger.error(f"Gemini API error: {response.status_code} - {response.text}")
-            return {
-                'success': False,
-                'error': f'API request failed: {response.status_code}',
-                'analysis': 'Unable to connect to Gemini AI service.'
-            }
-            
-    except requests.RequestException as e:
-        logger.error(f"Network error calling Gemini API: {str(e)}")
-        return {
-            'success': False,
-            'error': f'Network error: {str(e)}',
-            'analysis': 'Unable to connect to Gemini AI service due to network issues.'
-        }
-    except Exception as e:
-        logger.error(f"Unexpected error calling Gemini API: {str(e)}")
-        return {
-            'success': False,
-            'error': f'Unexpected error: {str(e)}',
-            'analysis': 'An unexpected error occurred while generating analysis.'
-        }
 
 predictor = StrokePredictor()
 
@@ -359,13 +258,11 @@ def predict_stroke():
         
         logger.info(f"Received prediction request: {patient_data}")
         
-        # Make prediction
         result = predictor.predict(patient_data)
         
         logger.info(f"Prediction result: {result}")
         
-        # Get Gemini analysis
-        gemini_response = get_gemini_analysis(patient_data, result)
+        gemini_response = get_gemini_analysis(patient_data, result, GEMINI_API_KEY, GEMINI_API_URL)
         
         return jsonify({
             'success': True,
@@ -491,25 +388,10 @@ def internal_error(error):
     }), 500
 
 if __name__ == '__main__':
-    os.makedirs('data', exist_ok=True)
-    
-    print("="*80)
-    print("🩺 STROKE PREDICTION FLASK BACKEND WITH GEMINI AI")
-    print("="*80)
-    print("Available endpoints:")
-    print("  GET  /                 - Serve the web interface")
-    print("  POST /predict          - Make stroke risk predictions with AI analysis")
-    print("  POST /train            - Train a new model")
-    print("  GET  /model/status     - Check model status")
-    print("  GET  /model/reload     - Reload saved model")
-    print("  GET  /health           - Health check")
-    print("="*80)
-    print(f"Model loaded: {predictor.is_loaded}")
-    print(f"Gemini AI configured: {GEMINI_API_KEY is not None}")
+    os.makedirs('data', exist_ok=True) 
     if not predictor.is_loaded:
         print("⚠️  No model loaded. Use /train endpoint to train a new model.")
     if not GEMINI_API_KEY:
         print("⚠️  Gemini API key not set. Set GEMINI_API_KEY environment variable.")
     print("="*80)
-    
     app.run(debug=True, host='0.0.0.0', port=5000)

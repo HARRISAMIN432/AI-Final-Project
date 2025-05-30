@@ -304,24 +304,19 @@ class StrokePredictionTrainer:
                     'smoking_status': 'formerly smoked'
                 }
         """
-        # Load model and preprocessing objects
         model, scaler, encoders = self.load_model_for_prediction(model_path, scaler_path, encoders_path)
         
-        # Convert to DataFrame
         df_patient = pd.DataFrame([patient_data])
         
-        # Apply label encoding
         for col, encoder in encoders.items():
             if col in df_patient.columns:
                 df_patient[col] = encoder.transform(df_patient[col].astype(str))
         
-        # Scale if needed (check if model needs scaling)
         if self.best_model_name in ['Random Forest', 'Decision Tree', 'Gradient Boosting', 'AdaBoost']:
             X_patient = df_patient.values
         else:
             X_patient = scaler.transform(df_patient.values)
         
-        # Make prediction
         prediction = model.predict(X_patient)[0]
         probability = model.predict_proba(X_patient)[0]
         
@@ -336,27 +331,13 @@ class StrokePredictionTrainer:
         """Run the complete training pipeline"""
         print("Starting complete stroke prediction model training pipeline...")
         print("="*80)
-        
-        # Load and preprocess data
         self.load_and_preprocess_data()
-        
-        # Split and scale data
         self.split_and_scale_data()
-        
-        # Initialize models
         self.initialize_models()
-        
-        # Train and evaluate models
         self.train_and_evaluate_models()
-        
-        # Hyperparameter tuning
         if perform_tuning:
             self.hyperparameter_tuning()
-        
-        # Print results
-        self.print_detailed_results()
-        
-        # Save best model
+        self.print_detailed_results()        
         model_path, scaler_path, encoders_path = self.save_best_model()
         
         print("\n" + "="*80)
@@ -369,7 +350,7 @@ class StrokePredictionTrainer:
         return self.best_model, self.best_model_name, self.best_accuracy
 
 if __name__ == "__main__":
-    trainer = StrokePredictionTrainer('data/healthcare-dataset-stroke-data.csv')  # Replace with your CSV file path
+    trainer = StrokePredictionTrainer('data/healthcare-dataset-stroke-data.csv')  
     
     best_model, best_model_name, best_accuracy = trainer.run_complete_pipeline()
     
@@ -381,7 +362,7 @@ if __name__ == "__main__":
         'ever_married': 'Yes',
         'work_type': 'Private',
         'Residence_type': 'Urban',
-        'avg_glucose_level': 228.69,
+        'avg_glucose_level': 228.6,
         'bmi': 36.6,
         'smoking_status': 'formerly smoked'
     }
